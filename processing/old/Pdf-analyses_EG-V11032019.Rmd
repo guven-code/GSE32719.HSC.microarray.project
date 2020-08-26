@@ -1,0 +1,131 @@
+---
+title: "20160117 GSE32719 FL_HHMI15 Aging in HSC" 
+author: "h qin"
+date: "January 17, 2016"
+output: html_document
+---
+
+GSE32719
+http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE32719
+
+```{r, message=FALSE}
+rm(list=ls())
+setwd("~/github/FL_HHMI15/project1.GSE32719")
+library(Biobase)
+library(GEOquery)
+library(limma)
+library(foreach)
+library(doMC)
+```
+
+load platform data from bioconductor
+http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE32719
+GPL570	[HG-U133_Plus_2] Affymetrix Human Genome U133 Plus 2.0 Array
+https://bioconductor.org/packages/release/data/annotation/html/hgu133plus2.db.html
+
+
+Load series and platform data from GEO
+# gset <- getGEO("GSE32719", GSEMatrix =FALSE)
+gset
+
+
+ gset <- gset$GSE32719_series_matrix.txt.gz
+# make proper column names to match toptable 
+# fvarLabels(gset) <- make.names(fvarLabels(gset))
+
+
+
+
+ex= exprs(gset)
+apply( ex, 2, median)
+means = apply( ex, 2, mean)
+means
+boxplot( ex )
+
+
+scale = max(means)
+for(i in 1:length(ex[1,])){
+  ex[,i] = ex[,i] * scale/ means[i]
+}
+apply( ex, 2, mean) / scale
+apply( ex, 2, median) /scale
+boxplot( ex )
+
+
+
+str(gset)
+#gset@phenoData@data
+experimental_design = gset@phenoData@data
+experimental_design[1:3,]
+# gset@phenoData@varMetadata
+# experimental_design[, "source_name_ch1"][1:10]
+experimental_design[1:3,  c("title", "source_name_ch1")]
+unique( experimental_design$source_name_ch1 
+
+
+
+gpl <- annotation(gset)
+platf <- getGEO(gpl, AnnotGPL=TRUE)
+ncbifd <- data.frame(attr(dataTable(platf), "table"))
+
+
+
+
+sample.names = unique(experimental_design$source_name_ch1)
+mylevels = c(1,2,3)
+names(mylevels) = sample.names
+gset.levels = mylevels[ experimental_design$source_name_ch1 ]
+my.pvalues = numeric(length=length(ex[,1]))
+# x2 = foreach(i=1:(3*2), .combine='cbind') %dopar% sqrt(i)
+
+registerDoMC(cores=4)
+#my.pvalues = foreach( i = 1:100, .combine='rbind') %dopar% {
+my.pvalues = foreach( i = 1:length(ex[,1]), .combine='rbind') %dopar% {
+  m = lm( ex[i,] ~ gset.levels )
+  sm = summary(m)
+  pf(sm$fstatistic[1], sm$fstatistic[2], sm$fstatistic[3], lower.tail = FALSE)
+}
+row.names(my.pvalues) = row.names(gset@assayData$exprs)
+
+
+
+hist(my.pvalues)
+summary(my.pvalues)
+my.pvalues.BH = p.adjust(my.pvalues, "BH")
+names(my.pvalues.BH) = row.names(gset@assayData$exprs)
+hist(my.pvalues.BH)
+summary(my.pvalues.BH)
+sig= my.pvalues.BH[my.pvalues.BH < 0.05]
+
+sig= data.frame(sig)
+sig$ID = row.names(sig)
+#ncbifd[ match(names(sig), as.character( ncbifd$ID) ),  ]
+sig2 = merge(sig, ncbifd, by="ID")
+```
+
+GO analysis
+```{r}
+sig.genes = unique(sig2$Gene.symbol)
+#sig.geneIDs = unique(sig2$Gene.ID)
+write.table(sig.genes, "__sig.genes.tsv", sep="\t", quote=F, row.names=F, col.names=F  )
+
+background.genes = unique( ncbifd$Gene.symbol)
+write.table(background.genes, "__background.genes.tsv", sep="\t", quote=F, row.names=F, col.names=F  )
+
+#library(topGO)
+```
+GOrilla show 
+
+Todo: Load bioconductor annotation
+```{r, message=FALSE }
+# source("https://bioconductor.org/biocLite.R")
+# biocLite("hgu133plus2.db")
+# library("hgu133plus2.db")
+# help(package="hgu133plus2.db")
+# ls("package:hgu133plus2.db")
+# x <- hgu133plus2GENENAME
+# x <- hgu133plus2SYMBOL
+# mapped_probes <- mappedkeys(x)
+# xx <- as.list(x[mapped_probes])
+# xx[1:5]
+```

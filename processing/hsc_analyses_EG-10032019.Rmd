@@ -1,0 +1,417 @@
+---
+output:
+  html_document: default
+  pdf_document:  default
+---
+
+#####title: "figures of filtered data"
+#####author: "Emine Guven"
+#####date: "02 July 2020"
+#####hsc_analyses
+#GSE32719
+#http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE32719
+
+```{r}
+rm(list=ls())
+
+library(Biobase)
+library(GEOquery)
+library(limma)
+library(foreach)
+library(doMC)
+library(gplots)
+#setwd("C:/Users/User/AMH Dropbox/Emine Guven/g?ls?m-burak-tez/analiz")
+#CURRENT_DIR<-getwd()
+```
+
+```{r}
+#load platform data from bioconductor
+#http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE32719
+#GPL570	[HG-U133_Plus_2] Affymetrix Human Genome U133 Plus 2.0 Array
+#https://bioconductor.org/packages/release/data/annotation/html/hgu133plus2.db.html
+#Load series and platform data from GEO
+```
+
+```{r}
+
+
+## gset <- gset$GSE32719_series_matrix.txt.gz
+gse <- getGEO(filename="GSE32719_series_matrix.txt.gz",GSEMatrix = TRUE,getGPL = FALSE) #Retrieve matrix data and store it in R object
+show(object = gse) ## To summarize the gse object
+x <- exprs(object = gse) #Get expression set from gse object
+
+write.csv(x = x, file = "GSE32719.expression.matrix.csv", quote = F, row.names = F) 
+# make proper column names to match toptable 
+# fvarLabels(gset) <- make.names(fvarLabels(gset))
+
+
+##Exression seviyelerini kontrol eder ve normalize eder..
+ex= exprs(gset) ##gset i?inden expres verisini ?ekip de?i?ken ile tan?mlad?k.
+apply( ex, 2, median) 
+means = apply( ex, 2, mean) ##Data i?indeki ki?ilerin tan?mlay?c? istatistiklerini kutu grafikte ?izdirir. 
+means
+#pdf(paste("C:/Users/lenovo/Dropbox/analiz" , "boxplot.pdf", sep=''),width=5,height=5)
+boxplot( ex )
+#dev.off()
+
+
+#Bu normalizasyon datan?n toplam yo?unlu?una g?re ger?ekle?ir.
+#Scale ile bir ?l?ekleme sa?lanmaktad?r.
+scale = max(means)
+for(i in 1:length(ex[1,])){
+  ex[,i] = ex[,i] * scale/ means[i] ##for d?ng?s? i?in scale ile datadaki max. ortalama de?eri ile 
+}                                   ###tan?mlad?k.
+apply( ex, 2, mean) / scale #Data i?indeki t?m ort. de?erlerini / scale(max.ort)
+apply( ex, 2, median) /scale #Data i?indeki ortalama de?erleri scale ile b?lerek bir normalizasyon yap?l?r.
+boxplot( ex )
+
+
+str(gset) ##data y? analizden ?nce inceler
+gset@phenoData@data ##phenodata n?n i?indeki datay? ?eker.(title, last update date, type, prtocol vb. bilgsini verir)
+experimental_design = gset@phenoData@data
+experimental_design[1:3,] #Yukar?da belirtti?imiz bilgileri datadan sadece ilk 3 ki?iye ili?kin verir.
+# gset@phenoData@varMetadata
+# experimental_design[, "source_name_ch1"][1:10]
+experimental_design[1:3,  c("title", "source_name_ch1")] ##Matrixdeki s?tunlara title ekler.
+unique( experimental_design$source_name_ch1 ) 
+
+
+gpl <- annotation(gset) ##Biobase'de bulunan annotation(gset) gpl de?i?kenine atay?p getGEO'dan verileri ald?k.
+platf <- getGEO(gpl, AnnotGPL=TRUE)
+ncbifd <- data.frame(attr(dataTable(platf), "table")) ##Yukar?da tan?mlad???m?z platf i?inden table[54675:21] matrixi
+                                                      ###burada ?ekip ncbifd de?i?kenine atad?k.Bu tablo bize Gene ID,
+                                                      ####Gene title,Gene symbol gibi ba?l?klarda ??kt?lar sunar.
+
+##Ya?a ba?l? regresyon analizine ba?l?yoruz.
+sample.names = unique(experimental_design$source_name_ch1) ###?rneklem ?zerindeki bireleri 3 grupta inceledik.(Y,M,O)
+mylevels = c(1,2,3)
+names(mylevels) = sample.names ##Yukar?da tan?msal kodlar? e?itleyerek 3 grubu e?le?tirdik.
+gset.levels = mylevels[ experimental_design$source_name_ch1 ]
+my.pvalues = numeric(length=length(ex[,1])) ##P de?erlerinin ex datasetinden ?ekilip numeric de?erler i?erdi?ini
+                                            ###ifade ettik.
+
+# x2 = foreach(i=1:(3*2), .combine='cbind') %dopar% sqrt(i)
+
+registerDoMC(cores=4) ##doMC package ?a??r?yoruz.
+#my.pvalues = foreach( i = 1:100, .combine='rbind') %dopar% {
+my.pvalues = foreach( i = 1:length(ex[,1]), .combine='rbind') %dopar% {
+m = lm( ex[i,] ~ gset.levels ) ##lm komutu (lineer model) regresyon analizinde kullan?l?r. i'de?eri p de?erlerini 
+                               ###s?ras?yla d?nd?recektir. ex gset(exprs) datalar?n? ifade ederek bizim ba??ml? 
+                               ####de?i?kenimizdir. Yukar?da tan?mlad???m?z gset.levels g?re reg. analizini uygular.
+sm = summary(m)
+  pf(sm$fstatistic[1], sm$fstatistic[2], sm$fstatistic[3], lower.tail = FALSE)
+}
+row.names(my.pvalues) = row.names(gset@assayData$exprs)
+
+#pdf(paste("C:/Users/lenovo/Dropbox/analiz/grafikler/" ,"pvalues.pdf",sep=''),width=8,height=5)
+hist(my.pvalues,ylim=c(0,7000), col = "blue" )
+#dev.off()
+summary(my.pvalues)
+
+my.pvalues.BH = p.adjust(my.pvalues, "BH")#Benjamini, Hochberg
+names(my.pvalues.BH) = row.names(gset@assayData$exprs)
+#pdf(paste("C:/Users/lenovo/Dropbox/analiz/grafikler/", "pvaluesBH.pdf",sep=''),width=8,height=5)
+hist(my.pvalues.BH,ylim=c(0,8000), col = "green" )
+#dev.off()
+summary(my.pvalues.BH)
+
+sig= my.pvalues.BH[my.pvalues.BH < 0.05]
+sig= data.frame(sig)
+sig$ID = row.names(sig)
+
+sig2 = merge(sig, ncbifd, by="ID")
+
+#GO analysis
+sig.genes = unique(sig2$Gene.symbol)
+write.table(sig.genes, "__sig.genes.tsv", sep="\t", quote=F, row.names=F, col.names=F  )
+
+sigGO<-data.frame("geneSymbol"=sig2$Gene.symbol,"geneFunc"=sig2$GO.Function,"geneFuncId"=sig2$GO.Function.ID,
+                  "geneComponent"=sig2$GO.Component, "geneComponentId"=sig2$GO.Component.ID, 
+                  "geneProcess"=sig2$GO.Process, "geneProcessID"=sig2$GO.Process.ID)
+
+write.table(sigGO, "sigGO.csv",sep="\t")
+
+write.csv(sigGO,"sigGO.csv",sep="\t" )
+background.genes = unique( ncbifd$Gene.symbol)
+write.table(background.genes, "__background.genes.tsv", sep="\t", quote=F, row.names=F, col.names=F  )
+
+#library(topGO)
+#do GOrilla analysis
+
+
+# source("https://bioconductor.org/biocLite.R")
+# biocLite("hgu133plus2.db")
+# library("hgu133plus2.db")
+# help(package="hgu133plus2.db")
+# ls("package:hgu133plus2.db")
+# x <- hgu133plus2GENENAME
+# x <- hgu133plus2SYMBOL
+# mapped_probes <- mappedkeys(x)
+# xx <- as.list(x[mapped_probes])
+# xx[1:5]
+
+View(ex)
+View(experimental_design)
+plot(experimental_design$source_name_ch1)
+plot(experimental_design$characteristics_ch1.2)
+
+sml <- c("Y","Y","Y","Y","Y","Y","Y","Y","Y","Y","Y","Y","Y","Y",
+         "M","M","M","M","M","O","O","O","O","O","O","O","O")
+
+fl <- as.factor(sml)
+labels <- c("ORTA YA?LI","YA?LI","GEN?")
+
+palette(c("#dfeaf4","#f4dfdf","#f2cb98"))
+title <- paste ("GSE32719", '/', gpl, " SELECTED SAMPLES", sep ='')
+pdf(paste("C:/Users/User/AMH Dropbox/Emine Guven/g?ls?m-burak-tez/analiz/grafikler/", "boxplot.pdf",sep=''),width=8,height=5)
+boxplot(ex, boxwex=0.75, notch=T, main=title, outline=FALSE, las=2, col=fl)
+legend("topleft", labels, fill=palette(), bty="n")
+#dev.off()
+
+hist(ex, ylim=c(0,250000),col = "blue", main="GSE32719 - Histogram")
+log = log2(ex)
+hist(log, col = "gray", main="GSE32719 (log2) - Histogram")
+
+hc = hclust(as.dist(1-cor(ex)))
+plot(hc, main="GSE32719 - Hierarchical Clustering")
+
+
+gds3942 <- getGEO('GDS3942', destdir=".")
+#gds3942 <- getGEO(filename='GDS3942.soft.gz')
+
+Meta(gds3942)$channel_count
+Meta(gds3942)$description
+
+colnames(Table(gds3942))
+Table(gds3942)[1:10,1:7]
+
+eset <- GDS2eSet(gds3942, do.log2=TRUE)
+
+eset@featureData@data$ID[1:10]
+eset@experimentData@other$sample_id
+
+eset["1007_s_at","GSM812988"]
+exprs(eset["1007_s_at","GSM812988"]) ##?rn:gen de?eri
+##makalede ilgilenilen genleri kullanarak analizler devam ettirilebilir.
+#pdf(paste("grafikler/" , "figure-samplegeneanalysis.pdf", sep=''),width=5,height=5)
+barplot(exprs(eset["215446_s_at"]),ylim=c(0,4))##?rn:t?m?r olu?muna inhibit?r etki ifade eden gen de?eri
+#dev.off()
+
+Meta(gds3942)$platform
+
+gpl570 <- getGEO('GPL570', destdir=".")
+
+Meta(gpl570)$title
+colnames(Table(gpl570))
+Table(gpl570)[1:10,1:5] #or
+Table(gpl570)[1:10,c("ID","Gene Title","Gene Symbol","ENTREZ_GENE_ID")]
+  
+attr(dataTable(platf), "table")[100,]
+attr(dataTable(platf), "table")[1:100,c("ID", "Gene symbol")]
+IDs <- attr(dataTable(platf), "table")[,c("ID", "Gene symbol")]
+IDs
+
+rows <- rownames(ex)
+IDs[which(IDs[,1] == rows[1000]), 2]
+
+n.col = 256 # number of colors
+cm  = redblue(n.col)
+mmx = min(abs(min(exprs(gsetSel))), abs(max(exprs(gsetSel))))
+colbr = c(seq(-mmx/2,mmx/2, len=length(cm)+1))
+
+#heatmap
+selected  <- my.pvalues.BH < 0.05
+gsetSel <- gset [selected, ]
+
+install.packages("RColorBrewer")
+library("RColorBrewer")
+#display all colour schemes
+display.brewer.all()
+colfunc <- colorRampPalette(c("black", "white", "red"))
+heatmap(exprs(gsetSel),col=brewer.pal(9,"Blues"),key=T)
+#if you want to preserve the column order
+#since the order may be informative
+heatmap(exprs(gsetSel),Colv=NA,col=brewer.pal(9,"Blues"),key=T)
+heatmap.2(exprs(gsetSel))
+
+######################################################################
+######### next todo : 1) makeup the heatmap
+#########             2)row column invisible
+##################### 3) do the other heatmaps accordingly ##########
+#########################################################################
+
+
+
+pdf(paste("C:/Users/User/AMH Dropbox/Emine Guven/g?ls?m-burak-tez/analiz/grafikler/" ,"All_genes_heatmap.pdf",sep=''),width=8,height=5)
+heatmap.2(exprs(gsetSel), scale = "row",col=colfunc(15),#breaks=colbr,notecol="black",
+          dendrogram = 'none', Rowv =F, Colv=F,trace='none', key=T, labRow=F,#, symkey=F, density.info = 'none',
+          xlab= "patients" , ylab = "gene symbols", margins =c(5,5), main = "DEGs", par(cex.main=.5),
+          srtCol=315, srtRow =315,cexRow = 0.7, adjCol = c(0,2),cexCol = 0.7, 
+          colsep = c(0,27), rowsep = c(0,570), sepcolor="gray")
+          
+dev.off()
+
+#reminding (line 104:115)
+#sig= my.pvalues.BH[my.pvalues.BH < 0.05] 
+#sig2 = merge(sig, ncbifd, by="ID")
+
+sig2.analysis <- sig2[c("ID","Gene.symbol","Gene.title")]
+write.table(sig2.analysis, "__analysis.ID-SYMBL-TITLE.tsv", sep="\t", quote=F, row.names=F, col.names=F )
+
+
+myeloid.spesific <- exprs(gset[c("230122_at","200948_at","213506_at","203870_at","205159_at","206109_at",
+                                 "209905_at","1562648_at")])
+#pdf(paste("C:/Users/lenovo/Dropbox/analiz/grafikler/" ,"myeloid.heatmap.pdf",sep=''),width=8,height=5)
+heatmap(myeloid.spesific ,(experimental_design$source_name_ch1), col=topo.colors(100),
+        main = "MYELOID-SPECIFIC")
+#pdf(paste("C:/Users/lenovo/Dropbox/analiz/grafikler/" ,"myeloid.boxplot.pdf",sep=''),width=8,height=5)
+boxplot(myeloid.spesific , boxwex=0.75, las=2, col=fl)
+legend("topleft", labels, fill=palette(), bty="n")
+#dev.off()
+
+
+lenfoid.spesific <- exprs(gset[c("201324_at","213665_at","210607_at","208885_at","1559458_at","221349_at",
+                                 "206276_at","206773_at")])
+#pdf(paste("C:/Users/lenovo/Dropbox/analiz/grafikler/" ,"lenfoid.heatmap.pdf",sep=''),width=8,height=5)
+heatmap(lenfoid.spesific ,(experimental_design$source_name_ch1), col=topo.colors(100),
+        main = "LYMPHOID-SPECIFIC")
+#pdf(paste("C:/Users/lenovo/Dropbox/analiz/grafikler/" ,"lenfoid.boxplot.pdf",sep=''),width=8,height=5)
+boxplot(lenfoid.spesific , boxwex=0.75, las=2, col=fl)
+legend("topleft", labels, fill=palette(), bty="n")
+#dev.off
+
+
+#GORILLA ANALYSIS
+#pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"ABCC1.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["202805_s_at"]), col = "#f4dfdf", las = 2, main = "ABCC1")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"ABCB1.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243951_at"]), col = "#dfeaf4", las = 2, main = "ABCB1")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"PRKAA2.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["227892_at"]), col = "#dfeaf4", las = 2, main = "PRKAA2")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"SIRPA.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["202895_s_at"]), col = "#f4dfdf", las = 2, main = "SIRPA")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"DDIT4.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["202887_s_at"]), col = "#dfeaf4", las = 2, main = "DDIT4")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"TNIP1.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243423_at"]), col = "#dfeaf4", las = 2, main = "TNIP1")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"DUSP6.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["208893_s_at"]), col = "#dfeaf4", las = 2, main = "DUSP6")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"GGNBP2.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["233937_at"]), col = "#dfeaf4", las = 2, main = "GGNBP2")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"MECOM.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243277_x_at"]), col = "#f4dfdf" , las = 2, main = "MECOM")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"STAT1.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["AFFX-HUMISGF3A/M97935_MB_at"]), col = "#f4dfdf" , las = 2, main = "STAT1")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"EZR.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["208623_s_at"]), col = "#f4dfdf" , las = 2, main = "EZR")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"WWC1.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243290_at"]), col = "#dfeaf4" , las = 2, main = "WWC1")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"KANK1.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["213005_s_at"]), col = "#dfeaf4" , las = 2, main = "KANK1")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"MYADM.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["225673_at"]), col = "#f4dfdf" , las = 2, main = "MYADM")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"RGS3.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["220300_at"]), col = "#f4dfdf" , las = 2, main = "RGS3")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"TANK.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243376_at"]), col = "#dfeaf4" , las = 2, main = "TANK")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"RANBP9.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243108_at"]), col = "#dfeaf4" , las = 2, main = "RANBP9")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"FNIP1.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243861_at"]), col = "#f4dfdf" , las = 2, main = "FNIP1")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"XIAP.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243026_x_at"]), col = "#dfeaf4" , las = 2, main = "XIAP")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"TNRC6A.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243834_at"]), col = "#dfeaf4" , las = 2, main = "TNRC6A")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"HEXIM1.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["202814_s_at"]), col = "#f4dfdf" , las = 2, main = "HEXIM")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"NCOA7.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243807_at"]), col = "#f4dfdf" , las = 2, main = "NCOA7")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"PPME1.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243443_at"]), col = "#f4dfdf" , las = 2, main = "PPME1")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"GPC3.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243243_at"]), col = "#f4dfdf" , las = 2, main = "GPC3")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"HEXIM2.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243796_at"]), col = "#dfeaf4" , las = 2, main = "HEXIM2")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"PIP5KL1.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243834_at"]), col = "#dfeaf4" , las = 2, main = "PIP5KL1")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"CARPIN1.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243370_at"]), col = "#dfeaf4" , las = 2, main = "CARPIN1")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"GAPDH.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["AFFX-HUMGAPDH/M33197_5_at"]), col = "#f4dfdf" , las = 2, main = "GAPDH")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"KNG1.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243562_at"]), col = "#f4dfdf" , las = 2, main = "KNG1")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"CPEB3.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["243651_at"]), col = "#dfeaf4" , las = 2, main = "CBEP3")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"SERPINE1.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["202628_s_at"]), col = "#f4dfdf" , las = 2, main = "SERPINE1")
+
+pdf(paste("C:/Users/lenovo/Documents/gorilla/" ,"DUSP1.pdf",sep=''),width=8 ,height=5)
+barplot(exprs(gset["201044_x_at"]), col = "#dfeaf4" , las = 2, main = "DUSP1")
+
+pdf(paste("C:/Users/lenovo/Dropbox/analiz/grafikler/" ,"HSC.pdf",sep=''),width=8 ,height=5)
+boxplot(exprs(gset), col=fl , las=2)
+legend("topleft", labels, fill=palette(), bty="n")
+
+gorilla <- (exprs(gset[c("201044_x_at","202628_s_at","243651_at","AFFX-HUMGAPDH/M33197_5_at","243370_at","243834_at",
+                     "243796_at","243243_at","243807_at","202814_s_at","243834_at","243026_x_at","243861_at",
+                     "243108_at","243376_at","220300_at","225673_at","213005_s_at","243290_at","208623_s_at",
+                     "AFFX-HUMISGF3A/M97935_MB_at","243277_x_at","208893_s_at","243423_at","202887_s_at","202895_s_at",
+                     "227892_at","243951_at","202805_s_at","243562_at","243443_at","233937_at")]))
+
+pdf(paste("C:/Users/lenovo/Dropbox/analiz/grafikler/" ,"GOrilla.heatmap.pdf",sep=''),width=8 ,height=5)
+heatmap(gorilla , col=topo.colors(100))
+
+
+## UMAS
+library("gplots")
+pdf(paste("C:/Users/lenovo/Dropbox/analiz/grafikler/" ,"UMAS.heatmap.lenfoid1.pdf",sep=''),width=8 ,height=5)
+heatmap.2(lenfoid.spesific, (experimental_design$source_name_ch1), scale = "none", col = topo.colors(100), 
+          trace = "none", density.info = "none")
+
+install.packages("pheatmap")
+library("pheatmap")
+pdf(paste("C:/Users/lenovo/Dropbox/analiz/grafikler/" ,"UMAS.heatmap.lenfoid2.pdf",sep=''),width=8 ,height=5)
+pheatmap(lenfoid.spesific, cutree_rows = 4)
+
+
+
+library("gplots")
+pdf(paste("C:/Users/lenovo/Dropbox/analiz/grafikler/" ,"UMAS.heatmap.myeloid1.pdf",sep=''),width=8 ,height=5)
+heatmap.2(myeloid.spesific, (experimental_design$source_name_ch1), scale = "none", col = topo.colors(100), 
+          trace = "none", density.info = "none")
+
+install.packages("pheatmap")
+library("pheatmap")
+pdf(paste("C:/Users/lenovo/Dropbox/analiz/grafikler/" ,"UMAS.heatmap.myeloid2.pdf",sep=''),width=8 ,height=5)
+pheatmap(myeloid.spesific, cutree_rows = 4)
+
