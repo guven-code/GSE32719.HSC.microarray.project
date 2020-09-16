@@ -1,0 +1,23 @@
+Pathway,Total,Expected,Hits,P.Value,FDR
+Focal adhesion,199,0.952,6,0.000321,0.102
+Small cell lung cancer,93,0.445,4,0.000954,0.152
+Arrhythmogenic right ventricular cardiomyopathy (ARVC),72,0.344,3,0.00479,0.365
+Pancreatic cancer,75,0.359,3,0.00537,0.365
+PI3K-Akt signaling pathway,354,1.69,6,0.00614,0.365
+ECM-receptor interaction,82,0.392,3,0.00688,0.365
+Hippo signaling pathway -multiple species,29,0.139,2,0.00833,0.378
+Kaposi's sarcoma-associated herpesvirus infection,186,0.889,4,0.0115,0.397
+Pathways in cancer,530,2.53,7,0.0116,0.397
+"Alanine, aspartate and glutamate metabolism",36,0.172,2,0.0127,0.397
+Proteoglycans in cancer,201,0.961,4,0.0149,0.397
+Leukocyte transendothelial migration,112,0.536,3,0.0161,0.397
+Bladder cancer,41,0.196,2,0.0162,0.397
+Regulation of actin cytoskeleton,214,1.02,4,0.0184,0.418
+Pathogenic Escherichia coli infection,55,0.263,2,0.0282,0.562
+Fluid shear stress and atherosclerosis,139,0.665,3,0.0283,0.562
+VEGF signaling pathway,59,0.282,2,0.0321,0.585
+Steroid hormone biosynthesis,60,0.287,2,0.0331,0.585
+Hepatitis C,155,0.741,3,0.0373,0.624
+Influenza A,167,0.799,3,0.0449,0.696
+Drug metabolism - cytochrome P450,72,0.344,2,0.0461,0.696
+Leishmaniasis,74,0.354,2,0.0485,0.696

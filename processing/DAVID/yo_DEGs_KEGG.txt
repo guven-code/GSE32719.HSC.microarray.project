@@ -1,0 +1,2 @@
+Category	Term	Count	%	PValue	Genes	List Total	Pop Hits	Pop Total	Fold Enrichment	Bonferroni	Benjamini	FDR
+KEGG_PATHWAY	hsa00670:One carbon pool by folate	2	0.014800562421372012	0.09181614780293991	DHFR2, GART	34	20	6879	20.232352941176472	0.9992704867567542	1.0	1.0

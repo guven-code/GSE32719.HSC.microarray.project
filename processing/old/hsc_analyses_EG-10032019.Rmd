@@ -1,9 +1,17 @@
+---
+output:
+  html_document: default
+  pdf_document:  default
+---
 
-
+#####title: "figures of filtered data"
+#####author: "Emine Guven"
+#####date: "02 July 2020"
+#####hsc_analyses
 #GSE32719
 #http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE32719
 
-
+```{r}
 rm(list=ls())
 
 library(Biobase)
@@ -12,77 +20,84 @@ library(limma)
 library(foreach)
 library(doMC)
 library(gplots)
-#setwd("C:/Users/User/AMH Dropbox/Emine Guven/gülsüm-burak-tez/analiz")
+#setwd("C:/Users/User/AMH Dropbox/Emine Guven/g?ls?m-burak-tez/analiz")
 #CURRENT_DIR<-getwd()
+```
 
+```{r}
 #load platform data from bioconductor
 #http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE32719
 #GPL570	[HG-U133_Plus_2] Affymetrix Human Genome U133 Plus 2.0 Array
 #https://bioconductor.org/packages/release/data/annotation/html/hgu133plus2.db.html
 #Load series and platform data from GEO
+```
 
-gset <- getGEO("GSE32719", GSEMatrix =TRUE)
-class(gset)
-str(gset)
+```{r}
 
- gset <- gset$GSE32719_series_matrix.txt.gz
+
+## gset <- gset$GSE32719_series_matrix.txt.gz
+gse <- getGEO(filename="GSE32719_series_matrix.txt.gz",GSEMatrix = TRUE,getGPL = FALSE) #Retrieve matrix data and store it in R object
+show(object = gse) ## To summarize the gse object
+x <- exprs(object = gse) #Get expression set from gse object
+
+write.csv(x = x, file = "GSE32719.expression.matrix.csv", quote = F, row.names = F) 
 # make proper column names to match toptable 
 # fvarLabels(gset) <- make.names(fvarLabels(gset))
 
 
-##Exression seviyelerini kontrol eder ve normalize eder.
-ex= exprs(gset) ##gset içinden expres verisini çekip deðiþken ile tanýmladýk.
+##Exression seviyelerini kontrol eder ve normalize eder..
+ex= exprs(gset) ##gset i?inden expres verisini ?ekip de?i?ken ile tan?mlad?k.
 apply( ex, 2, median) 
-means = apply( ex, 2, mean) ##Data içindeki kiþilerin tanýmlayýcý istatistiklerini kutu grafikte çizdirir. 
+means = apply( ex, 2, mean) ##Data i?indeki ki?ilerin tan?mlay?c? istatistiklerini kutu grafikte ?izdirir. 
 means
 #pdf(paste("C:/Users/lenovo/Dropbox/analiz" , "boxplot.pdf", sep=''),width=5,height=5)
 boxplot( ex )
 #dev.off()
 
 
-#Bu normalizasyon datanýn toplam yoðunluðuna göre gerçekleþir.
-#Scale ile bir ölçekleme saðlanmaktadýr.
+#Bu normalizasyon datan?n toplam yo?unlu?una g?re ger?ekle?ir.
+#Scale ile bir ?l?ekleme sa?lanmaktad?r.
 scale = max(means)
 for(i in 1:length(ex[1,])){
-  ex[,i] = ex[,i] * scale/ means[i] ##for döngüsü için scale ile datadaki max. ortalama deðeri ile 
-}                                   ###tanýmladýk.
-apply( ex, 2, mean) / scale #Data içindeki tüm ort. deðerlerini / scale(max.ort)
-apply( ex, 2, median) /scale #Data içindeki ortalama deðerleri scale ile bölerek bir normalizasyon yapýlýr.
+  ex[,i] = ex[,i] * scale/ means[i] ##for d?ng?s? i?in scale ile datadaki max. ortalama de?eri ile 
+}                                   ###tan?mlad?k.
+apply( ex, 2, mean) / scale #Data i?indeki t?m ort. de?erlerini / scale(max.ort)
+apply( ex, 2, median) /scale #Data i?indeki ortalama de?erleri scale ile b?lerek bir normalizasyon yap?l?r.
 boxplot( ex )
 
 
-str(gset) ##data yý analizden önce inceler
-gset@phenoData@data ##phenodata nýn içindeki datayý çeker.(title, last update date, type, prtocol vb. bilgsini verir)
+str(gset) ##data y? analizden ?nce inceler
+gset@phenoData@data ##phenodata n?n i?indeki datay? ?eker.(title, last update date, type, prtocol vb. bilgsini verir)
 experimental_design = gset@phenoData@data
-experimental_design[1:3,] #Yukarýda belirttiðimiz bilgileri datadan sadece ilk 3 kiþiye iliþkin verir.
+experimental_design[1:3,] #Yukar?da belirtti?imiz bilgileri datadan sadece ilk 3 ki?iye ili?kin verir.
 # gset@phenoData@varMetadata
 # experimental_design[, "source_name_ch1"][1:10]
-experimental_design[1:3,  c("title", "source_name_ch1")] ##Matrixdeki sütunlara title ekler.
+experimental_design[1:3,  c("title", "source_name_ch1")] ##Matrixdeki s?tunlara title ekler.
 unique( experimental_design$source_name_ch1 ) 
 
 
-gpl <- annotation(gset) ##Biobase'de bulunan annotation(gset) gpl deðiþkenine atayýp getGEO'dan verileri aldýk.
+gpl <- annotation(gset) ##Biobase'de bulunan annotation(gset) gpl de?i?kenine atay?p getGEO'dan verileri ald?k.
 platf <- getGEO(gpl, AnnotGPL=TRUE)
-ncbifd <- data.frame(attr(dataTable(platf), "table")) ##Yukarýda tanýmladýðýmýz platf içinden table[54675:21] matrixi
-                                                      ###burada çekip ncbifd deðiþkenine atadýk.Bu tablo bize Gene ID,
-                                                      ####Gene title,Gene symbol gibi baþlýklarda çýktýlar sunar.
+ncbifd <- data.frame(attr(dataTable(platf), "table")) ##Yukar?da tan?mlad???m?z platf i?inden table[54675:21] matrixi
+                                                      ###burada ?ekip ncbifd de?i?kenine atad?k.Bu tablo bize Gene ID,
+                                                      ####Gene title,Gene symbol gibi ba?l?klarda ??kt?lar sunar.
 
-##Yaþa baðlý regresyon analizine baþlýyoruz.
-sample.names = unique(experimental_design$source_name_ch1) ###Örneklem üzerindeki bireleri 3 grupta inceledik.(Y,M,O)
+##Ya?a ba?l? regresyon analizine ba?l?yoruz.
+sample.names = unique(experimental_design$source_name_ch1) ###?rneklem ?zerindeki bireleri 3 grupta inceledik.(Y,M,O)
 mylevels = c(1,2,3)
-names(mylevels) = sample.names ##Yukarýda tanýmsal kodlarý eþitleyerek 3 grubu eþleþtirdik.
+names(mylevels) = sample.names ##Yukar?da tan?msal kodlar? e?itleyerek 3 grubu e?le?tirdik.
 gset.levels = mylevels[ experimental_design$source_name_ch1 ]
-my.pvalues = numeric(length=length(ex[,1])) ##P deðerlerinin ex datasetinden çekilip numeric deðerler içerdiðini
+my.pvalues = numeric(length=length(ex[,1])) ##P de?erlerinin ex datasetinden ?ekilip numeric de?erler i?erdi?ini
                                             ###ifade ettik.
 
 # x2 = foreach(i=1:(3*2), .combine='cbind') %dopar% sqrt(i)
 
-registerDoMC(cores=4) ##doMC package çaðýrýyoruz.
+registerDoMC(cores=4) ##doMC package ?a??r?yoruz.
 #my.pvalues = foreach( i = 1:100, .combine='rbind') %dopar% {
 my.pvalues = foreach( i = 1:length(ex[,1]), .combine='rbind') %dopar% {
-m = lm( ex[i,] ~ gset.levels ) ##lm komutu (lineer model) regresyon analizinde kullanýlýr. i'deðeri p deðerlerini 
-                               ###sýrasýyla döndürecektir. ex gset(exprs) datalarýný ifade ederek bizim baðýmlý 
-                               ####deðiþkenimizdir. Yukarýda tanýmladýðýmýz gset.levels göre reg. analizini uygular.
+m = lm( ex[i,] ~ gset.levels ) ##lm komutu (lineer model) regresyon analizinde kullan?l?r. i'de?eri p de?erlerini 
+                               ###s?ras?yla d?nd?recektir. ex gset(exprs) datalar?n? ifade ederek bizim ba??ml? 
+                               ####de?i?kenimizdir. Yukar?da tan?mlad???m?z gset.levels g?re reg. analizini uygular.
 sm = summary(m)
   pf(sm$fstatistic[1], sm$fstatistic[2], sm$fstatistic[3], lower.tail = FALSE)
 }
@@ -144,11 +159,11 @@ sml <- c("Y","Y","Y","Y","Y","Y","Y","Y","Y","Y","Y","Y","Y","Y",
          "M","M","M","M","M","O","O","O","O","O","O","O","O")
 
 fl <- as.factor(sml)
-labels <- c("ORTA YAÞLI","YAÞLI","GENÇ")
+labels <- c("ORTA YA?LI","YA?LI","GEN?")
 
 palette(c("#dfeaf4","#f4dfdf","#f2cb98"))
 title <- paste ("GSE32719", '/', gpl, " SELECTED SAMPLES", sep ='')
-pdf(paste("C:/Users/User/AMH Dropbox/Emine Guven/gülsüm-burak-tez/analiz/grafikler/", "boxplot.pdf",sep=''),width=8,height=5)
+pdf(paste("C:/Users/User/AMH Dropbox/Emine Guven/g?ls?m-burak-tez/analiz/grafikler/", "boxplot.pdf",sep=''),width=8,height=5)
 boxplot(ex, boxwex=0.75, notch=T, main=title, outline=FALSE, las=2, col=fl)
 legend("topleft", labels, fill=palette(), bty="n")
 #dev.off()
@@ -176,10 +191,10 @@ eset@featureData@data$ID[1:10]
 eset@experimentData@other$sample_id
 
 eset["1007_s_at","GSM812988"]
-exprs(eset["1007_s_at","GSM812988"]) ##örn:gen deðeri
+exprs(eset["1007_s_at","GSM812988"]) ##?rn:gen de?eri
 ##makalede ilgilenilen genleri kullanarak analizler devam ettirilebilir.
 #pdf(paste("grafikler/" , "figure-samplegeneanalysis.pdf", sep=''),width=5,height=5)
-barplot(exprs(eset["215446_s_at"]),ylim=c(0,4))##Örn:tümör oluþmuna inhibitör etki ifade eden gen deðeri
+barplot(exprs(eset["215446_s_at"]),ylim=c(0,4))##?rn:t?m?r olu?muna inhibit?r etki ifade eden gen de?eri
 #dev.off()
 
 Meta(gds3942)$platform
@@ -227,7 +242,7 @@ heatmap.2(exprs(gsetSel))
 
 
 
-pdf(paste("C:/Users/User/AMH Dropbox/Emine Guven/gülsüm-burak-tez/analiz/grafikler/" ,"All_genes_heatmap.pdf",sep=''),width=8,height=5)
+pdf(paste("C:/Users/User/AMH Dropbox/Emine Guven/g?ls?m-burak-tez/analiz/grafikler/" ,"All_genes_heatmap.pdf",sep=''),width=8,height=5)
 heatmap.2(exprs(gsetSel), scale = "row",col=colfunc(15),#breaks=colbr,notecol="black",
           dendrogram = 'none', Rowv =F, Colv=F,trace='none', key=T, labRow=F,#, symkey=F, density.info = 'none',
           xlab= "patients" , ylab = "gene symbols", margins =c(5,5), main = "DEGs", par(cex.main=.5),

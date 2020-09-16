@@ -1,0 +1,71 @@
+Pathway,Total,Expected,Hits,P.Value,FDR
+Hepatitis C,155,0.881,10,1.08E-08,3.42E-06
+Cell cycle,124,0.705,9,2.30E-08,3.66E-06
+Prostate cancer,97,0.552,7,1.03E-06,0.000109
+Pathways in cancer,530,3.01,13,4.56E-06,0.000362
+Kaposi's sarcoma-associated herpesvirus infection,186,1.06,8,8.11E-06,0.000516
+HTLV-I infection,219,1.25,8,2.67E-05,0.00141
+Renal cell carcinoma,69,0.392,5,4.04E-05,0.00176
+Thyroid hormone signaling pathway,116,0.66,6,4.42E-05,0.00176
+Pancreatic cancer,75,0.427,5,6.05E-05,0.00214
+Fluid shear stress and atherosclerosis,139,0.79,6,0.000121,0.00386
+Notch signaling pathway,48,0.273,4,0.000148,0.00427
+Small cell lung cancer,93,0.529,5,0.000169,0.00448
+HIF-1 signaling pathway,100,0.569,5,0.000238,0.00541
+MicroRNAs in cancer,299,1.7,8,0.000238,0.00541
+Hepatitis B,163,0.927,6,0.00029,0.00615
+Influenza A,167,0.95,6,0.000331,0.00657
+Tuberculosis,179,1.02,6,0.000479,0.00897
+PI3K-Akt signaling pathway,354,2.01,8,0.00074,0.0131
+Chronic myeloid leukemia,76,0.432,4,0.000867,0.0141
+Epstein-Barr virus infection,201,1.14,6,0.000884,0.0141
+Bladder cancer,41,0.233,3,0.00157,0.0238
+TGF-beta signaling pathway,92,0.523,4,0.00177,0.0255
+Wnt signaling pathway,158,0.899,5,0.0019,0.0263
+Endocrine resistance,98,0.557,4,0.00223,0.0294
+Progesterone-mediated oocyte maturation,99,0.563,4,0.00231,0.0294
+Chagas disease (American trypanosomiasis),103,0.586,4,0.00267,0.0327
+NOD-like receptor signaling pathway,178,1.01,5,0.0032,0.0377
+Endometrial cancer,58,0.33,3,0.00426,0.0476
+VEGF signaling pathway,59,0.336,3,0.00447,0.0476
+Sphingolipid signaling pathway,119,0.677,4,0.00449,0.0476
+Focal adhesion,199,1.13,5,0.00515,0.0528
+Proteoglycans in cancer,201,1.14,5,0.00537,0.0534
+Mitophagy - animal,65,0.37,3,0.00586,0.0565
+Non-small cell lung cancer,66,0.375,3,0.00612,0.0572
+Apoptosis,136,0.773,4,0.0072,0.0635
+Measles,138,0.785,4,0.00757,0.0635
+Adherens junction,72,0.409,3,0.00779,0.0635
+Melanoma,72,0.409,3,0.00779,0.0635
+Arrhythmogenic right ventricular cardiomyopathy (ARVC),72,0.409,3,0.00779,0.0635
+Platinum drug resistance,73,0.415,3,0.00809,0.0643
+Glioma,75,0.427,3,0.00872,0.0676
+Adrenergic signaling in cardiomyocytes,145,0.825,4,0.00899,0.068
+Breast cancer,147,0.836,4,0.00942,0.0697
+Collecting duct acid secretion,27,0.154,2,0.0101,0.0733
+Hippo signaling pathway,154,0.876,4,0.011,0.0781
+Cellular senescence,160,0.91,4,0.0126,0.0851
+Colorectal cancer,86,0.489,3,0.0126,0.0851
+Necroptosis,162,0.921,4,0.0131,0.0851
+Jak-STAT signaling pathway,162,0.921,4,0.0131,0.0851
+Rheumatoid arthritis,91,0.518,3,0.0147,0.0936
+Thyroid cancer,37,0.21,2,0.0186,0.116
+AGE-RAGE signaling pathway in diabetic complications,100,0.569,3,0.0189,0.116
+Melanogenesis,101,0.574,3,0.0194,0.117
+Glucagon signaling pathway,103,0.586,3,0.0205,0.12
+Transcriptional misregulation in cancer,186,1.06,4,0.0208,0.12
+Homologous recombination,41,0.233,2,0.0225,0.126
+Th17 cell differentiation,107,0.609,3,0.0226,0.126
+Huntington's disease,193,1.1,4,0.0234,0.128
+Leukocyte transendothelial migration,112,0.637,3,0.0254,0.137
+Toxoplasmosis,113,0.643,3,0.026,0.138
+Viral carcinogenesis,201,1.14,4,0.0267,0.139
+Nucleotide excision repair,47,0.267,2,0.0291,0.149
+AMPK signaling pathway,120,0.682,3,0.0304,0.153
+Vibrio cholerae infection,50,0.284,2,0.0326,0.162
+Dopaminergic synapse,131,0.745,3,0.038,0.184
+FoxO signaling pathway,132,0.751,3,0.0387,0.184
+Pathogenic Escherichia coli infection,55,0.313,2,0.0388,0.184
+Ubiquitin mediated proteolysis,137,0.779,3,0.0425,0.199
+Longevity regulating pathway - multiple species,62,0.353,2,0.0482,0.222
+Basal cell carcinoma,63,0.358,2,0.0496,0.225
